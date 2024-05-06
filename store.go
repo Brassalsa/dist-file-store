@@ -88,6 +88,7 @@ func NewStore(opts StoreOpts) *Store {
 
 // clears the whole root directory and files inside it
 func (s *Store) Clear() error {
+	defer log.Printf("deleted [%s]", s.Root)
 	return os.RemoveAll(s.Root)
 }
 
@@ -103,9 +104,8 @@ func (s *Store) Has(key string) bool {
 // delete a file
 func (s *Store) Delete(key string) error {
 	pathKey := s.PathTransformFunc(key)
-	defer func() {
-		log.Printf("deleted [%s] from disk", pathKey.FullPath())
-	}()
+	defer log.Printf("deleted from disk: [%s]", pathKey.FullPathWithRoot(s.Root))
+
 	return os.RemoveAll(s.Root + "/" + pathKey.FirstName())
 }
 

@@ -71,7 +71,7 @@ func TestStore(t *testing.T) {
 		}
 
 		// check file exists
-		if has := s.Has(key); has == false {
+		if has := s.Has(key); !has {
 			t.Error("file not found")
 		}
 
@@ -92,6 +92,11 @@ func TestStore(t *testing.T) {
 		// delete file
 		if err := s.Delete(key); err != nil {
 			t.Error(err)
+		}
+
+		// check again file exists
+		if has := s.Has(key); has {
+			t.Error("file is not deleted")
 		}
 	}
 
