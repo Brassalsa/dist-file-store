@@ -103,6 +103,9 @@ func (s *Store) Has(key string) bool {
 // delete a file
 func (s *Store) Delete(key string) error {
 	pathKey := s.PathTransformFunc(key)
+	defer func() {
+		log.Printf("deleted [%s] from disk", pathKey.FullPath())
+	}()
 	return os.RemoveAll(s.Root + "/" + pathKey.FirstName())
 }
 
@@ -150,7 +153,7 @@ func (s *Store) writeStream(key string, r io.Reader) error {
 		return err
 	}
 
-	log.Printf("written (%d) bytes to disk: %s", m, fullPath)
+	log.Printf("written (%d) bytes to disk: [%s]", m, fullPath)
 
 	return nil
 }

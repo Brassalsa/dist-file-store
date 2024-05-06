@@ -35,7 +35,7 @@ func TestPathTransformFunc(t *testing.T) {
 	}
 }
 
-var key = "specialKey"
+const key = "specialKey"
 
 var data = []byte("some jpeg")
 
@@ -62,32 +62,37 @@ func TestDelete(t *testing.T) {
 func TestStore(t *testing.T) {
 	s := newStore()
 	defer tearDown(t, s)
-	// create file and write data
-	if err := s.writeStream(key, bytes.NewReader(data)); err != nil {
-		t.Error(err)
+
+	for i := 0; i < 10; i++ {
+		key := fmt.Sprintf("random_%v", i)
+		// create file and write data
+		if err := s.writeStream(key, bytes.NewReader(data)); err != nil {
+			t.Error(err)
+		}
+
+		// check file exists
+		if has := s.Has(key); has == false {
+			t.Error("file not found")
+		}
+
+		// read a file
+		r, err := s.Read(key)
+
+		if err != nil {
+			t.Error(err)
+		}
+
+		b, _ := io.ReadAll(r)
+		fmt.Printf("reading file: %s\n", string(b))
+
+		if string(b) != string(data) {
+			t.Errorf("want %s have %s", string(b), string(data))
+		}
+
+		// delete file
+		if err := s.Delete(key); err != nil {
+			t.Error(err)
+		}
 	}
 
-	// check file exists
-	if has := s.Has(key); has == false {
-		t.Error("file not found")
-	}
-
-	// read a file
-	r, err := s.Read(key)
-
-	if err != nil {
-		t.Error(err)
-	}
-
-	b, _ := io.ReadAll(r)
-	fmt.Printf("reading file: %s\n", string(b))
-
-	if string(b) != string(data) {
-		t.Errorf("want %s have %s", string(b), string(data))
-	}
-
-	// delete file
-	if err := s.Delete(key); err != nil {
-		t.Error(err)
-	}
 }
