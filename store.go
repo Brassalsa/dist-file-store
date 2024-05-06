@@ -86,7 +86,7 @@ func NewStore(opts StoreOpts) *Store {
 	}
 }
 
-// clear the whole root directory and files inside it
+// clears the whole root directory and files inside it
 func (s *Store) Clear() error {
 	return os.RemoveAll(s.Root)
 }
