@@ -7,21 +7,6 @@ import (
 	"testing"
 )
 
-func newStore() *Store {
-	opts := StoreOpts{
-		PathTransformFunc: CASPathTransformFunc,
-		Root:              "_test_store",
-	}
-
-	return NewStore(opts)
-}
-
-func tearDown(t *testing.T, s *Store) {
-	if err := s.Clear(); err != nil {
-		t.Errorf("error clearing store: %s\n", err)
-	}
-}
-
 func TestPathTransformFunc(t *testing.T) {
 	key := "test picture"
 	pathKey := CASPathTransformFunc(key)
@@ -100,4 +85,19 @@ func TestStore(t *testing.T) {
 		}
 	}
 
+}
+
+func newStore() *Store {
+	opts := StoreOpts{
+		PathTransformFunc: CASPathTransformFunc,
+		Root:              "_test_store",
+	}
+
+	return NewStore(opts)
+}
+
+func tearDown(t *testing.T, s *Store) {
+	if err := s.Clear(); err != nil {
+		t.Errorf("error clearing store: %s\n", err)
+	}
 }
