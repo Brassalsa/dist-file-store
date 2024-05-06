@@ -1,2 +1,5 @@
 bin/
 vendor/
+
+# this directory will store all the files
+_file_store/
