@@ -86,6 +86,10 @@ func NewStore(opts StoreOpts) *Store {
 	}
 }
 
+func (s *Store) Clear() error {
+	return os.RemoveAll(s.Root)
+}
+
 // check if file exists
 func (s *Store) Has(key string) bool {
 	pathkey := s.PathTransformFunc(key)

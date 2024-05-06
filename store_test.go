@@ -7,6 +7,20 @@ import (
 	"testing"
 )
 
+func newStore() *Store {
+	opts := StoreOpts{
+		PathTransformFunc: CASPathTransformFunc,
+	}
+
+	return NewStore(opts)
+}
+
+func tearDown(t *testing.T, s *Store) {
+	if err := s.Clear(); err != nil {
+		t.Errorf("error clearing store: %s\n", err)
+	}
+}
+
 func TestPathTransformFunc(t *testing.T) {
 	key := "test picture"
 	pathKey := CASPathTransformFunc(key)
@@ -21,20 +35,18 @@ func TestPathTransformFunc(t *testing.T) {
 }
 
 var key = "specialKey"
-var opts = StoreOpts{
-	PathTransformFunc: CASPathTransformFunc,
-}
+
 var data = []byte("some jpeg")
 
 func TestCreate(t *testing.T) {
-	s := NewStore(opts)
+	s := newStore()
 	if err := s.writeStream(key, bytes.NewReader(data)); err != nil {
 		t.Error(err)
 	}
 }
 
 func TestDelete(t *testing.T) {
-	s := NewStore(opts)
+	s := newStore()
 	if err := s.Delete(key); err != nil {
 		t.Error(err)
 	}
@@ -47,8 +59,8 @@ func TestDelete(t *testing.T) {
 }
 
 func TestStore(t *testing.T) {
-	s := NewStore(opts)
-
+	s := newStore()
+	defer tearDown(t, s)
 	// create file and write data
 	if err := s.writeStream(key, bytes.NewReader(data)); err != nil {
 		t.Error(err)
