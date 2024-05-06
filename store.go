@@ -13,6 +13,7 @@ import (
 
 const defaultRootFolder = "_file_store"
 
+// content addressable storage function
 func CASPathTransformFunc(key string) PathKey {
 	hash := sha1.Sum([]byte(key))
 	hashStr := hex.EncodeToString(hash[:])
