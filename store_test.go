@@ -10,6 +10,7 @@ import (
 func newStore() *Store {
 	opts := StoreOpts{
 		PathTransformFunc: CASPathTransformFunc,
+		Root:              "_test_store",
 	}
 
 	return NewStore(opts)

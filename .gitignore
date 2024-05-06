@@ -1,5 +1,8 @@
 bin/
 vendor/
 
-# this directory will store all the files
+# default directory that store all the files
 _file_store/
+
+# default directory for storing file created by running store_test
+.test_store/
