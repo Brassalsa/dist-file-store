@@ -1,4 +1,4 @@
-module github.com/Brassalsa/go-dist-file-store
+module github.com/Brassalsa/dist-file-store
 
 go 1.22.1
 

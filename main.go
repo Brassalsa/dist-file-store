@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/Brassalsa/go-dist-file-store/p2p"
+	"github.com/Brassalsa/dist-file-store/p2p"
 )
 
 func OnPeer(peer p2p.Peer) error {
