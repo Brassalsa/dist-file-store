@@ -132,6 +132,9 @@ func (s *Store) readStream(key string) (io.ReadCloser, error) {
 }
 
 // save file to disk
+func (s *Store) Write(key string, r io.Reader) error {
+	return s.writeStream(key, r)
+}
 func (s *Store) writeStream(key string, r io.Reader) error {
 	pathKey := s.PathTransformFunc(key)
 	if err := os.MkdirAll(s.Root+"/"+pathKey.PathName, os.ModePerm); err != nil {

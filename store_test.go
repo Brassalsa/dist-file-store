@@ -26,7 +26,7 @@ var data = []byte("some jpeg")
 
 func TestCreate(t *testing.T) {
 	s := newStore()
-	if err := s.writeStream(key, bytes.NewReader(data)); err != nil {
+	if err := s.Write(key, bytes.NewReader(data)); err != nil {
 		t.Error(err)
 	}
 }
@@ -51,7 +51,7 @@ func TestStore(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		key := fmt.Sprintf("random_%v", i)
 		// create file and write data
-		if err := s.writeStream(key, bytes.NewReader(data)); err != nil {
+		if err := s.Write(key, bytes.NewReader(data)); err != nil {
 			t.Error(err)
 		}
 
