@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -24,9 +25,21 @@ func NewTCPPeer(conn net.Conn, oubound bool) *TCPPeer {
 	}
 }
 
+// send data
+func (p *TCPPeer) Send(b []byte) error {
+	_, err := p.conn.Write(b)
+	return err
+}
+
 // implements Peer interface
 func (p *TCPPeer) Close() error {
 	return p.conn.Close()
+}
+
+// implements Peer interface,
+// returns the remote address of connection
+func (p *TCPPeer) RemoteAddr() net.Addr {
+	return p.conn.RemoteAddr()
 }
 
 // tcp tarnsport------------------->
@@ -55,6 +68,23 @@ func (t *TCPTransport) Consume() <-chan RPC {
 	return t.rpcCh
 }
 
+// implements Transport interface
+func (t *TCPTransport) Close() error {
+	return t.listener.Close()
+}
+
+// implements Transport interface
+func (t *TCPTransport) Dial(addr string) error {
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		return err
+	}
+
+	go t.handleConn(conn, true)
+
+	return nil
+}
+
 func (t *TCPTransport) ListenAndAccept() error {
 	var err error
 
@@ -75,18 +105,22 @@ func (t *TCPTransport) startAcceptLoop() {
 	for {
 		conn, err := t.listener.Accept()
 
+		if errors.Is(err, net.ErrClosed) {
+			return
+		}
+
 		if err != nil {
 			fmt.Printf("TCP accept error: %s\n", err)
 			continue
 		}
 
-		fmt.Printf("New incomming connection %v\n", conn)
-		go t.handleConn(conn)
+		fmt.Printf("New incomming connection %v\n", conn.LocalAddr())
+		go t.handleConn(conn, false)
 	}
 }
 
-func (t *TCPTransport) handleConn(conn net.Conn) {
-	peer := NewTCPPeer(conn, true)
+func (t *TCPTransport) handleConn(conn net.Conn, outbound bool) {
+	peer := NewTCPPeer(conn, outbound)
 	var err error
 	defer func() {
 		fmt.Printf("droping peer connection: %s\n", err)
