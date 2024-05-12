@@ -6,3 +6,4 @@ _file_store/
 
 # default directory for storing file created by running store_test
 .test_store/
+*_network/
