@@ -133,13 +133,14 @@ func (s *Store) readStream(key string) (io.ReadCloser, error) {
 }
 
 // save file to disk
-func (s *Store) Write(key string, r io.Reader) error {
+func (s *Store) Write(key string, r io.Reader) (int64, error) {
 	return s.writeStream(key, r)
 }
-func (s *Store) writeStream(key string, r io.Reader) error {
+
+func (s *Store) writeStream(key string, r io.Reader) (int64, error) {
 	pathKey := s.PathTransformFunc(key)
 	if err := os.MkdirAll(s.Root+"/"+pathKey.PathName, os.ModePerm); err != nil {
-		return err
+		return 0, err
 	}
 
 	fullPath := pathKey.FullPathWithRoot(s.Root)
@@ -147,17 +148,17 @@ func (s *Store) writeStream(key string, r io.Reader) error {
 	f, err := os.Create(fullPath)
 
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	defer f.Close()
 
 	m, err := io.Copy(f, r)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	log.Printf("written (%d) bytes to disk: [%s]", m, fullPath)
 
-	return nil
+	return m, nil
 }
