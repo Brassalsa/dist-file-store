@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"log"
+	"time"
 
 	"github.com/Brassalsa/dist-file-store/p2p"
 )
@@ -15,7 +17,7 @@ func makeServer(listenAddr string, nodes ...string) *FileServer {
 	tcpTranport := p2p.NewTCPTransport(tcpTranportOpts)
 
 	fileServerOpts := FileServerOpts{
-		StorageRoot:       listenAddr + "_network",
+		StorageRoot:       listenAddr[1:] + "_network",
 		PathTransformFunc: CASPathTransformFunc,
 		Transport:         tcpTranport,
 		BootstrapNodes:    nodes,
@@ -34,7 +36,14 @@ func main() {
 	go func() {
 		log.Fatal(s1.Start())
 	}()
+	time.Sleep(time.Second * 1)
+	go s2.Start()
 
-	log.Fatal(s2.Start())
+	time.Sleep(time.Second * 2)
+	data := bytes.NewReader([]byte("very big file please help"))
+	if err := s2.StoreData("store_key", data); err != nil {
+		log.Println(err)
+	}
 
+	select {}
 }
