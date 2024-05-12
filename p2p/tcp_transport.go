@@ -5,41 +5,35 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sync"
 )
 
 // tcp peer --------------------->
 // respresents remote node over tcp connection
 type TCPPeer struct {
-	// underlying connection of peer
-	conn net.Conn
+	// underlying connection of peer, which
+	// would be TCP connection
+	net.Conn
 
 	// if dialed/send -> outbound = true
 	// if accept/recieved -> inbound = false
 	outbound bool
+
+	Wg *sync.WaitGroup
 }
 
 func NewTCPPeer(conn net.Conn, oubound bool) *TCPPeer {
 	return &TCPPeer{
-		conn:     conn,
+		Conn:     conn,
 		outbound: oubound,
+		Wg:       &sync.WaitGroup{},
 	}
 }
 
 // send data
 func (p *TCPPeer) Send(b []byte) error {
-	_, err := p.conn.Write(b)
+	_, err := p.Conn.Write(b)
 	return err
-}
-
-// implements Peer interface
-func (p *TCPPeer) Close() error {
-	return p.conn.Close()
-}
-
-// implements Peer interface,
-// returns the remote address of connection
-func (p *TCPPeer) RemoteAddr() net.Addr {
-	return p.conn.RemoteAddr()
 }
 
 // tcp tarnsport------------------->
@@ -106,6 +100,7 @@ func (t *TCPTransport) startAcceptLoop() {
 		conn, err := t.listener.Accept()
 
 		if errors.Is(err, net.ErrClosed) {
+			fmt.Println("conn closed")
 			return
 		}
 
@@ -114,7 +109,7 @@ func (t *TCPTransport) startAcceptLoop() {
 			continue
 		}
 
-		fmt.Printf("New incomming connection %v\n", conn.LocalAddr())
+		fmt.Printf("New incomming connection %v\n", conn.RemoteAddr())
 		go t.handleConn(conn, false)
 	}
 }
@@ -135,6 +130,7 @@ func (t *TCPTransport) handleConn(conn net.Conn, outbound bool) {
 
 	if t.OnPeer != nil {
 		if err = t.OnPeer(peer); err != nil {
+			log.Printf("OnPeer err: %s\n", err)
 			return
 		}
 	}
@@ -143,10 +139,15 @@ func (t *TCPTransport) handleConn(conn net.Conn, outbound bool) {
 	rpc := RPC{}
 	for {
 		if err = t.Decoder.Decode(conn, &rpc); err != nil {
+			log.Println(err)
 			return
 		}
-		rpc.From = conn.RemoteAddr()
+		rpc.From = conn.RemoteAddr().String()
+		fmt.Println("waiting til stream is done...")
+		peer.Wg.Add(1)
 		t.rpcCh <- rpc
+		peer.Wg.Wait()
+		fmt.Println("stream is done")
 	}
 
 }
