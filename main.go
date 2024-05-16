@@ -1,8 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"time"
 
@@ -41,23 +41,23 @@ func main() {
 	go s2.Start()
 
 	time.Sleep(time.Second * 1)
-	for i := range 5 {
-		data := bytes.NewReader([]byte(fmt.Sprintf("very big file please help part %v", i)))
-		if err := s2.Store(fmt.Sprintf("store_key_%v", i), data); err != nil {
-			log.Println(err)
-		}
-		time.Sleep(time.Millisecond)
-	}
-	// time.Sleep(time.Second)
-	// r, err := s2.Get("store_key")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// b, err := io.ReadAll(r)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// fmt.Println("file is found: ", string(b))
+	key := "coolPicture.jpg"
 
-	select {}
+	// data := bytes.NewReader([]byte("very big file please help part"))
+	// if err := s2.Store(key, data); err != nil {
+	// 	log.Println(err)
+	// }
+
+	// time.Sleep(time.Second)
+	r, err := s2.Get(key)
+	if err != nil {
+		log.Fatal(err)
+	}
+	b, err := io.ReadAll(r)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("file is found: ", string(b))
+
 }
