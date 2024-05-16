@@ -61,7 +61,7 @@ func TestStore(t *testing.T) {
 		}
 
 		// read a file
-		r, err := s.Read(key)
+		_, r, err := s.Read(key)
 
 		if err != nil {
 			t.Error(err)
@@ -74,6 +74,11 @@ func TestStore(t *testing.T) {
 			t.Errorf("want %s have %s", string(b), string(data))
 		}
 
+		// close file
+		rc, ok := r.(io.ReadCloser)
+		if ok {
+			rc.Close()
+		}
 		// delete file
 		if err := s.Delete(key); err != nil {
 			t.Error(err)
@@ -90,7 +95,7 @@ func TestStore(t *testing.T) {
 func newStore() *Store {
 	opts := StoreOpts{
 		PathTransformFunc: CASPathTransformFunc,
-		Root:              "_test_store",
+		Root:              ".test_store",
 	}
 
 	return NewStore(opts)
