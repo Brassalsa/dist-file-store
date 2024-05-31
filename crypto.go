@@ -3,9 +3,16 @@ package main
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/md5"
 	"crypto/rand"
+	"encoding/hex"
 	"io"
 )
+
+func hashKey(key string) string {
+	hash := md5.Sum([]byte(key))
+	return hex.EncodeToString(hash[:])
+}
 
 func newEncryptionKey() []byte {
 	keyBuf := make([]byte, 32)
@@ -13,25 +20,10 @@ func newEncryptionKey() []byte {
 	return keyBuf
 }
 
-func copyEncrypt(key []byte, src io.Reader, dst io.Writer) (int, error) {
-	bloc, err := aes.NewCipher(key)
-	if err != nil {
-		return 0, err
-	}
-
-	iv := make([]byte, bloc.BlockSize())
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		return 0, err
-	}
-	// prepend iv to the file
-	if _, err := dst.Write(iv); err != nil {
-		return 0, err
-	}
-
+func copyStream(stream cipher.Stream, blocSize int, src io.Reader, dst io.Writer) (int, error) {
 	var (
-		buf    = make([]byte, 32*1024)
-		stream = cipher.NewCTR(bloc, iv)
-		nw     = bloc.BlockSize()
+		buf = make([]byte, 32*1024)
+		nw  = blocSize
 	)
 
 	for {
@@ -56,6 +48,25 @@ func copyEncrypt(key []byte, src io.Reader, dst io.Writer) (int, error) {
 	return nw, nil
 }
 
+func copyEncrypt(key []byte, src io.Reader, dst io.Writer) (int, error) {
+	bloc, err := aes.NewCipher(key)
+	if err != nil {
+		return 0, err
+	}
+
+	iv := make([]byte, bloc.BlockSize())
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		return 0, err
+	}
+	// prepend iv to the file
+	if _, err := dst.Write(iv); err != nil {
+		return 0, err
+	}
+
+	stream := cipher.NewCTR(bloc, iv)
+	return copyStream(stream, bloc.BlockSize(), src, dst)
+}
+
 func copyDecrypt(key []byte, src io.Reader, dst io.Writer) (int, error) {
 	bloc, err := aes.NewCipher(key)
 	if err != nil {
@@ -68,31 +79,6 @@ func copyDecrypt(key []byte, src io.Reader, dst io.Writer) (int, error) {
 		return 0, err
 	}
 
-	var (
-		buf    = make([]byte, 32*1024)
-		stream = cipher.NewCTR(bloc, iv)
-		nw     = bloc.BlockSize()
-	)
-
-	for {
-		n, err := src.Read(buf)
-		if n > 0 {
-			stream.XORKeyStream(buf, buf[:n])
-			nn, err := dst.Write(buf[:n])
-			if err != nil {
-				return 0, err
-			}
-
-			nw += nn
-		}
-
-		if err != io.EOF {
-			break
-		}
-		if err != nil {
-			return 0, err
-		}
-	}
-
-	return nw, nil
+	stream := cipher.NewCTR(bloc, iv)
+	return copyStream(stream, bloc.BlockSize(), src, dst)
 }

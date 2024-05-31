@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -18,6 +19,7 @@ func makeServer(listenAddr string, nodes ...string) *FileServer {
 	tcpTranport := p2p.NewTCPTransport(tcpTranportOpts)
 
 	fileServerOpts := FileServerOpts{
+		EncKey:            newEncryptionKey(),
 		StorageRoot:       listenAddr[1:] + "_network",
 		PathTransformFunc: CASPathTransformFunc,
 		Transport:         tcpTranport,
@@ -32,32 +34,43 @@ func makeServer(listenAddr string, nodes ...string) *FileServer {
 }
 
 func main() {
-	s1 := makeServer(":3000", "")
+	s1 := makeServer(":3000")
 	s2 := makeServer(":4000", ":3000")
-	go func() {
-		log.Fatal(s1.Start())
-	}()
-	time.Sleep(time.Second * 1)
+	s3 := makeServer(":5000", ":3000", ":4000")
+
+	go s1.Start()
 	go s2.Start()
 
 	time.Sleep(time.Second * 1)
-	key := "coolPicture.jpg"
+	go s3.Start()
 
-	// data := bytes.NewReader([]byte("very big file please help part"))
-	// if err := s2.Store(key, data); err != nil {
-	// 	log.Println(err)
-	// }
+	time.Sleep(time.Second * 1)
 
-	// time.Sleep(time.Second)
-	r, err := s2.Get(key)
-	if err != nil {
-		log.Fatal(err)
+	for i := range 10 {
+
+		key := fmt.Sprintf("coolPicture_%d.jpg", i)
+		fileData := fmt.Sprintf("very long file please help {%d}", i)
+
+		data := bytes.NewReader([]byte(fileData))
+		if err := s3.Store(key, data); err != nil {
+			log.Println(err)
+		}
+		if err := s3.store.Delete(key); err != nil {
+			log.Fatal(err)
+		}
+
+		r, err := s3.Get(key)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		b, err := io.ReadAll(r)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println("file is found: ", string(b))
 	}
-	b, err := io.ReadAll(r)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("file is found: ", string(b))
 
 }
