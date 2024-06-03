@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"log"
 	"time"
 
@@ -19,6 +18,7 @@ func makeServer(listenAddr string, nodes ...string) *FileServer {
 	tcpTranport := p2p.NewTCPTransport(tcpTranportOpts)
 
 	fileServerOpts := FileServerOpts{
+		ID:                generateId(),
 		EncKey:            newEncryptionKey(),
 		StorageRoot:       listenAddr[1:] + "_network",
 		PathTransformFunc: CASPathTransformFunc,
@@ -47,30 +47,18 @@ func main() {
 	time.Sleep(time.Second * 1)
 
 	for i := range 10 {
-
 		key := fmt.Sprintf("coolPicture_%d.jpg", i)
 		fileData := fmt.Sprintf("very long file please help {%d}", i)
-
 		data := bytes.NewReader([]byte(fileData))
+
 		if err := s3.Store(key, data); err != nil {
 			log.Println(err)
 		}
-		if err := s3.store.Delete(key); err != nil {
+
+		time.Sleep(time.Millisecond * 100)
+		if err := s3.Delete(s3.ID, key); err != nil {
 			log.Fatal(err)
 		}
-
-		r, err := s3.Get(key)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		b, err := io.ReadAll(r)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		fmt.Println("file is found: ", string(b))
+		time.Sleep(time.Millisecond * 100)
 	}
-
 }

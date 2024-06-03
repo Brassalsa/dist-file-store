@@ -12,6 +12,11 @@ import (
 
 const defaultRootFolder = "_file_store"
 
+const (
+	TypeGetFile    = 0x1
+	TypeDeleteFile = 0x2
+)
+
 // content addressable storage function
 func CASPathTransformFunc(key string) PathKey {
 	hash := sha1.Sum([]byte(key))
@@ -51,8 +56,8 @@ func (p *PathKey) FullPath() string {
 	return fmt.Sprintf("%s/%s", p.PathName, p.FileName)
 }
 
-func (p *PathKey) FullPathWithRoot(root string) string {
-	return fmt.Sprintf("%s/%s/%s", root, p.PathName, p.FileName)
+func (p *PathKey) FullPathWRoot(root, id string) string {
+	return fmt.Sprintf("%s/%s/%s/%s", root, id, p.PathName, p.FileName)
 }
 
 func (p *PathKey) FirstName() string {
@@ -66,7 +71,9 @@ func (p *PathKey) FirstName() string {
 
 type StoreOpts struct {
 	// Root is the root folder in which folders/files will be saved
-	Root              string
+	Root string
+	// Id of the owner of storage
+	Id                string
 	PathTransformFunc PathTransformFunc
 }
 
@@ -81,6 +88,7 @@ func NewStore(opts StoreOpts) *Store {
 	if opts.Root == "" {
 		opts.Root = defaultRootFolder
 	}
+
 	return &Store{
 		StoreOpts: opts,
 	}
@@ -93,30 +101,31 @@ func (s *Store) Clear() error {
 }
 
 // check if file exists
-func (s *Store) Has(key string) bool {
+func (s *Store) Has(id, key string) bool {
 	pathkey := s.PathTransformFunc(key)
 
-	_, err := os.Stat(pathkey.FullPathWithRoot(s.Root))
+	_, err := os.Stat(pathkey.FullPathWRoot(s.Root, id))
 
 	return err == nil
 }
 
 // delete a file
-func (s *Store) Delete(key string) error {
+func (s *Store) Delete(id, key string) error {
 	pathKey := s.PathTransformFunc(key)
-	defer fmt.Printf("deleted from disk: [%s]\n", pathKey.FullPathWithRoot(s.Root))
+	defer fmt.Printf("deleted from disk: [%s]\n", pathKey.FullPathWRoot(s.Root, id))
 
-	return os.RemoveAll(s.Root + "/" + pathKey.FirstName())
+	path := fmt.Sprintf("%s/%s/%s", s.Root, id, pathKey.FirstName())
+	return os.RemoveAll(path)
 }
 
 // read a file
-func (s *Store) Read(key string) (int64, io.Reader, error) {
-	return s.readStream(key)
+func (s *Store) Read(id, key string) (int64, io.Reader, error) {
+	return s.readStream(id, key)
 }
 
-func (s *Store) readStream(key string) (int64, io.ReadCloser, error) {
+func (s *Store) readStream(id, key string) (int64, io.ReadCloser, error) {
 	pathKey := s.PathTransformFunc(key)
-	file, err := os.Open(pathKey.FullPathWithRoot(s.Root))
+	file, err := os.Open(pathKey.FullPathWRoot(s.Root, id))
 
 	if err != nil {
 		return 0, nil, err
@@ -131,24 +140,26 @@ func (s *Store) readStream(key string) (int64, io.ReadCloser, error) {
 	return fi.Size(), file, err
 }
 
-func (s *Store) openFileForWriting(key string) (*os.File, error) {
+func (s *Store) openFileForWriting(id, key string) (*os.File, error) {
 	pathKey := s.PathTransformFunc(key)
-	if err := os.MkdirAll(s.Root+"/"+pathKey.PathName, os.ModePerm); err != nil {
+
+	path := fmt.Sprintf("%s/%s/%s", s.Root, id, pathKey.PathName)
+	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		return nil, err
 	}
 
-	fullPath := pathKey.FullPathWithRoot(s.Root)
+	fullPath := pathKey.FullPathWRoot(s.Root, id)
 
 	return os.Create(fullPath)
 }
 
 // save file to disk
-func (s *Store) Write(key string, r io.Reader) (int64, error) {
-	return s.writeStream(key, r)
+func (s *Store) Write(id, key string, r io.Reader) (int64, error) {
+	return s.writeStream(id, key, r)
 }
 
-func (s *Store) WriteDecrypt(encKey []byte, key string, r io.Reader) (int64, error) {
-	f, err := s.openFileForWriting(key)
+func (s *Store) WriteDecrypt(encKey []byte, id, key string, r io.Reader) (int64, error) {
+	f, err := s.openFileForWriting(id, key)
 	if err != nil {
 		return 0, err
 	}
@@ -158,8 +169,8 @@ func (s *Store) WriteDecrypt(encKey []byte, key string, r io.Reader) (int64, err
 	return int64(m), err
 }
 
-func (s *Store) writeStream(key string, r io.Reader) (int64, error) {
-	f, err := s.openFileForWriting(key)
+func (s *Store) writeStream(id, key string, r io.Reader) (int64, error) {
+	f, err := s.openFileForWriting(id, key)
 	if err != nil {
 		return 0, err
 	}
