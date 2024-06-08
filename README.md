@@ -26,7 +26,7 @@ Here you can add instructions on how to get a copy of the project up and running
 
 ## Prerequisites
 
-- Go lang 1.22v or above (required)
+- Go lang 1.22 or above (required)
 - Makefile tools (optional)
 
 ## Installing
